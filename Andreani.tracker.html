@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Andreani Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #fff; color: #000; font-family: system-ui, sans-serif; padding-bottom: 60px; }
+
+  .header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 2px solid #ccc; background: #fff; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-title { font-size: 18px; font-weight: 900; letter-spacing: 2px; color: #000; }
+  .logo-sub { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #444; }
+  .btn-cargar { background: #cc0000; color: #fff; border: none; border-radius: 10px; padding: 12px 20px; font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; }
+
+  .tabs { display: flex; border-bottom: 2px solid #ccc; padding: 0 20px; background: #fff; overflow-x: auto; }
+  .tab { background: none; border: none; color: #444; font-family: inherit; font-size: 14px; font-weight: 800; padding: 14px 16px 12px; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; white-space: nowrap; }
+  .tab.active { color: #cc0000; border-bottom: 3px solid #cc0000; }
+
+  .filtros { display: flex; gap: 12px; padding: 16px 20px; flex-wrap: wrap; align-items: flex-end; background: #f8f8f8; border-bottom: 1px solid #ccc; }
+  .filtro-group { display: flex; flex-direction: column; gap: 6px; }
+  .filtro-label { font-size: 11px; font-weight: 800; color: #000; letter-spacing: 2px; text-transform: uppercase; }
+  .filtro-row { display: flex; gap: 8px; }
+  select { background: #fff; border: 1px solid #ccc; color: #000; border-radius: 8px; padding: 10px 12px; font-family: inherit; font-size: 14px; font-weight: 700; }
+
+  .periodo-tag { background: rgba(204,0,0,0.08); border: 2px solid #cc0000; border-radius: 8px; padding: 10px 16px; font-size: 14px; font-weight: 800; color: #cc0000; margin: 16px 20px; }
+  .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px; }
+  .cat-card { background: #f2f2f2; border: 1px solid #ccc; border-radius: 10px; padding: 14px 16px; }
+  .cat-name { font-size: 12px; font-weight: 700; color: #222; margin-bottom: 10px; line-height: 1.4; }
+  .cat-stats { display: flex; justify-content: space-between; align-items: flex-end; }
+  .cat-cant { font-size: 24px; font-weight: 900; color: #000; }
+  .cat-unit { font-size: 12px; font-weight: 700; color: #666; }
+  .cat-monto { font-size: 13px; font-weight: 800; color: #cc0000; }
+  .total-card { margin: 16px 20px 0; background: #fff; border: 3px solid #cc0000; border-radius: 14px; padding: 20px; }
+  .total-row { display: flex; justify-content: space-between; align-items: center; }
+  .total-label { font-size: 12px; font-weight: 800; color: #000; letter-spacing: 2px; text-transform: uppercase; }
+  .total-num { font-size: 36px; font-weight: 900; color: #000; }
+  .total-monto { font-size: 36px; font-weight: 900; color: #cc0000; }
+  .divider { height: 2px; background: #ccc; margin: 14px 0; }
+
+  .hist-wrap { padding: 16px 20px; }
+  .hist-row { display: flex; align-items: center; background: #fff; border: 1px solid #ccc; border-radius: 10px; padding: 14px 16px; margin-bottom: 8px; }
+  .hist-fecha { font-size: 15px; font-weight: 800; color: #000; min-width: 110px; }
+  .hist-stats { flex: 1; text-align: right; }
+  .hist-envios { font-size: 12px; font-weight: 700; color: #666; display: block; }
+  .hist-monto { font-size: 16px; font-weight: 900; color: #cc0000; display: block; }
+  .btn-del { background: none; border: 1px solid #ccc; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 14px; margin-left: 12px; }
+
+  .config-wrap { padding: 16px 20px; }
+  .config-title { font-size: 16px; font-weight: 900; color: #000; margin-bottom: 4px; }
+  .config-sub { font-size: 12px; font-weight: 700; color: #666; margin-bottom: 16px; }
+  .config-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #f2f2f2; }
+  .config-cat { flex: 1; font-size: 13px; font-weight: 700; color: #222; }
+  .config-input { background: #f2f2f2; border: 1px solid #ccc; color: #cc0000; border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 15px; font-weight: 900; width: 100px; text-align: right; }
+  .btn-save-config { width: 100%; padding: 16px; font-weight: 800; font-size: 16px; cursor: pointer; font-family: inherit; border-radius: 12px; border: none; background: #cc0000; color: #fff; margin-top: 16px; }
+  .config-ok { background: rgba(0,102,0,0.08); border: 1px solid rgba(0,102,0,0.3); border-radius: 8px; padding: 12px 14px; color: #006600; font-size: 14px; font-weight: 700; margin-top: 12px; display: none; }
+
+  .empty { text-align: center; color: #666; padding: 60px 20px; font-size: 15px; font-weight: 700; line-height: 2; }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: flex-end; z-index: 200; }
+  .modal { background: #fff; border: 1px solid #ccc; border-radius: 20px 20px 0 0; width: 100%; max-height: 92vh; display: flex; flex-direction: column; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 2px solid #ccc; flex-shrink: 0; }
+  .modal-title { font-size: 18px; font-weight: 900; color: #000; }
+  .modal-sub { font-size: 12px; font-weight: 700; color: #444; margin-top: 2px; }
+  .btn-close { background: #f2f2f2; border: none; color: #222; font-size: 20px; cursor: pointer; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+  .modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+  .file-zone { background: #f2f2f2; border: 1px solid #ccc; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .file-zone-header { display: flex; align-items: center; gap: 8px; }
+  .file-zone-title { font-size: 14px; font-weight: 800; color: #000; }
+  .badge { font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 2px 8px; border-radius: 4px; }
+  .badge-req { background: rgba(204,0,0,0.1); color: #cc0000; }
+  .badge-opt { background: #e0e0e0; color: #666; }
+  .file-zone-hint { font-size: 12px; font-weight: 600; color: #555; }
+  .file-btn-wrap { position: relative; width: 100%; height: 54px; }
+  .file-btn-visual { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; background: #fff; border: 1px dashed #ccc; border-radius: 10px; font-size: 14px; font-weight: 700; color: #222; pointer-events: none; }
+  .file-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+  .file-ok { font-size: 12px; font-weight: 700; color: #006600; background: rgba(0,102,0,0.08); border: 1px solid rgba(0,102,0,0.25); border-radius: 6px; padding: 6px 10px; }
+
+  .big-btn { width: 100%; padding: 16px; font-weight: 800; font-size: 16px; cursor: pointer; font-family: inherit; border-radius: 12px; border: none; }
+  .big-btn-red { background: #cc0000; color: #fff; }
+  .big-btn-outline { background: none; border: 1px solid #ccc !important; color: #222; }
+
+  .loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; gap: 20px; }
+  .spinner { width: 56px; height: 56px; border: 5px solid #ccc; border-top: 5px solid #cc0000; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .loading-msg { font-size: 16px; font-weight: 800; color: #000; text-align: center; }
+  .loading-sub { font-size: 13px; font-weight: 700; color: #666; text-align: center; }
+
+  .stats-row { display: flex; justify-content: space-around; background: #f2f2f2; border-radius: 12px; padding: 18px 10px; }
+  .stat-item { text-align: center; }
+  .stat-num { font-size: 32px; font-weight: 900; }
+  .stat-label { font-size: 11px; font-weight: 700; color: #666; margin-top: 4px; }
+  .review-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #f2f2f2; }
+  .review-cat { flex: 1; font-size: 13px; font-weight: 700; color: #222; }
+  .review-cant { font-size: 16px; font-weight: 900; color: #000; min-width: 36px; text-align: right; }
+  .review-monto { font-size: 14px; font-weight: 800; color: #cc0000; min-width: 110px; text-align: right; }
+  .review-total { display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; padding: 10px 0; }
+  .warning-box { background: rgba(204,0,0,0.08); border: 1px solid rgba(204,0,0,0.35); border-radius: 10px; padding: 12px 14px; }
+  .warning-title { font-size: 14px; font-weight: 800; color: #cc0000; }
+  .warning-sub { font-size: 12px; font-weight: 700; color: #666; margin-top: 4px; }
+
+  .manual-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #f2f2f2; }
+  .manual-cat { flex: 1; font-size: 13px; font-weight: 700; color: #222; }
+  .manual-input { background: #f2f2f2; border: 1px solid #ccc; color: #cc0000; border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 16px; font-weight: 900; width: 80px; text-align: right; }
+  .date-input { background: #fff; border: 1px solid #ccc; color: #000; border-radius: 8px; padding: 12px 14px; font-family: inherit; font-size: 15px; font-weight: 700; width: 100%; }
+  .error-box { background: rgba(204,0,0,0.08); border: 1px solid #cc0000; border-radius: 8px; padding: 12px 14px; color: #cc0000; font-size: 14px; font-weight: 700; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <svg width="46" height="46" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100" height="100" rx="14" fill="#cc0000"/>
+      <polygon points="10,88 38,18 50,18 28,88" fill="white"/>
+      <polygon points="90,88 62,18 50,18 72,88" fill="white"/>
+      <polygon points="38,54 50,22 62,54" fill="#cc0000"/>
+      <rect x="30" y="54" width="40" height="9" fill="white"/>
+    </svg>
+    <div>
+      <div class="logo-title">ANDREANI</div>
+      <div class="logo-sub">TRACKER DE ENVÍOS</div>
+    </div>
+  </div>
+  <button class="btn-cargar" onclick="openModal()">+ Cargar día</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" id="tab-resumen" onclick="switchTab('resumen')">Resumen</button>
+  <button class="tab" id="tab-historial" onclick="switchTab('historial')">Historial</button>
+  <button class="tab" id="tab-config" onclick="switchTab('config')">⚙️ Precios</button>
+</div>
+
+<div class="filtros" id="filtros-wrap">
+  <div class="filtro-group">
+    <span class="filtro-label">Período</span>
+    <div class="filtro-row">
+      <select id="sel-mes" onchange="render()"></select>
+      <select id="sel-anio" onchange="render()"></select>
+    </div>
+  </div>
+  <div class="filtro-group">
+    <span class="filtro-label">Día</span>
+    <select id="sel-dia" onchange="render()"><option value="todos">Todo el mes</option></select>
+  </div>
+</div>
+
+<div id="content-resumen"></div>
+<div id="content-historial" class="hidden"></div>
+<div id="content-config" class="hidden"></div>
+
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title">Cargar archivos</div>
+        <div class="modal-sub" id="modal-sub">Hoja de ruta + Excel + No entregados</div>
+      </div>
+      <button class="btn-close" id="btn-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const STORAGE_KEY = "andreani-tracker-v2";
+const PRICES_KEY = "andreani-prices-v2";
+
+// Precios por defecto (Abril 2026)
+const PRECIOS_DEFAULT = {
+  "Encomienda eCommerce": 2183, "Documento Andreani": 1707, "Tarjeta Financiera": 1613,
+  "Tarjeta Financiera Paquete": 1613, "Tarjeta Financiera Prepagas": 1613,
+  "Planilla conformada": 1519, "Encomienda corporativa": 2356, "Encomienda Natura": 2084,
+  "Alta TD": 1613, "Telefonía": 2183, "Reposición TD": 1613,
+  "Encomienda eCommerce Internacional": 1800, "LI Retiro": 2183, "Constancia de entrega": 2183,
+};
+const EQUIV = {
+  "LI Retiro": "Encomienda eCommerce", "Constancia de entrega": "Encomienda eCommerce",
+  "Tarjeta Financiera Prepagas": "Tarjeta Financiera"
+};
+
+const normCat = c => EQUIV[c] || c;
+const fmt = n => "$" + Math.round(n).toLocaleString("es-AR");
+const today = new Date();
+
+let data = {};      // { "2026-05-01": { cats: { "Encomienda eCommerce": { cant: 10, monto: 21830 } } } }
+let precios = {};   // precios vigentes
+let currentTab = "resumen";
+let step = 1;
+let hojaFiles = [], excelFile = null, noEntFiles = [], reviewData = null;
+
+function loadAll() {
+  try { const s = localStorage.getItem(STORAGE_KEY); if (s) data = JSON.parse(s); } catch {}
+  try { const p = localStorage.getItem(PRICES_KEY); if (p) precios = JSON.parse(p); else precios = {...PRECIOS_DEFAULT}; } catch { precios = {...PRECIOS_DEFAULT}; }
+}
+function saveData() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {} }
+function savePrices() { try { localStorage.setItem(PRICES_KEY, JSON.stringify(precios)); } catch {} }
+
+function getPrice(cat) {
+  const norm = normCat(cat);
+  return precios[norm] || precios[cat] || PRECIOS_DEFAULT[norm] || PRECIOS_DEFAULT[cat] || 0;
+}
+
+function initSelects() {
+  const sm = document.getElementById("sel-mes");
+  MESES.forEach((m,i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=m; if(i===today.getMonth()) o.selected=true; sm.appendChild(o); });
+  const sa = document.getElementById("sel-anio");
+  [2024,2025,2026,2027].forEach(y=>{ const o=document.createElement("option"); o.value=y; o.textContent=y; if(y===today.getFullYear()) o.selected=true; sa.appendChild(o); });
+}
+
+function getMesIdx() { return parseInt(document.getElementById("sel-mes").value); }
+function getAnio() { return parseInt(document.getElementById("sel-anio").value); }
+function getDia() { return document.getElementById("sel-dia").value; }
+
+function getDiasMes() {
+  return Object.keys(data).filter(d=>{ const dt=new Date(d+"T00:00:00"); return dt.getMonth()===getMesIdx()&&dt.getFullYear()===getAnio(); }).sort();
+}
+
+function updateDiaSelect() {
+  const sel = document.getElementById("sel-dia");
+  const cur = sel.value;
+  sel.innerHTML = '<option value="todos">Todo el mes</option>';
+  getDiasMes().forEach(d=>{
+    const dt=new Date(d+"T00:00:00");
+    const o=document.createElement("option");
+    o.value=d; o.textContent=dt.getDate()+" de "+MESES[dt.getMonth()];
+    if(d===cur) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+// Obtener resumen — usa montos guardados (no recalcula con precios actuales)
+function getResumen() {
+  const dias = getDia()==="todos" ? getDiasMes() : [getDia()];
+  const tot = {}; // { cat: { cant, monto } }
+  dias.forEach(d => {
+    const dayData = data[d] || {};
+    // Soporte para formato nuevo (con monto guardado) y formato viejo (solo cant)
+    Object.entries(dayData).forEach(([cat, val]) => {
+      if (!tot[cat]) tot[cat] = { cant: 0, monto: 0 };
+      if (typeof val === "object" && val.cant !== undefined) {
+        tot[cat].cant += val.cant;
+        tot[cat].monto += val.monto;
+      } else {
+        // Formato viejo: solo cantidad
+        tot[cat].cant += val;
+        tot[cat].monto += val * getPrice(cat);
+      }
+    });
+  });
+  return tot;
+}
+
+function switchTab(t) {
+  currentTab = t;
+  ["resumen","historial","config"].forEach(x => {
+    document.getElementById("tab-"+x).classList.toggle("active", x===t);
+    document.getElementById("content-"+x).classList.toggle("hidden", x!==t);
+  });
+  document.getElementById("filtros-wrap").classList.toggle("hidden", t==="config");
+  render();
+}
+
+function render() {
+  updateDiaSelect();
+  if (currentTab==="resumen") renderResumen();
+  else if (currentTab==="historial") renderHistorial();
+  else renderConfig();
+}
+
+function renderResumen() {
+  const el = document.getElementById("content-resumen");
+  const res = getResumen();
+  const totalEnv = Object.values(res).reduce((a,b)=>a+b.cant,0);
+  const totalMonto = Object.values(res).reduce((a,b)=>a+b.monto,0);
+  const dia = getDia();
+  const periodoTxt = dia==="todos"
+    ? MESES[getMesIdx()]+" "+getAnio()+" — mes completo"
+    : (()=>{ const dt=new Date(dia+"T00:00:00"); return dt.getDate()+" de "+MESES[dt.getMonth()]+" "+getAnio(); })();
+
+  if (totalEnv===0) {
+    el.innerHTML=`<div class="periodo-tag">${periodoTxt}</div><div class="empty">Sin datos para este período.<br>Tocá "+ Cargar día" para comenzar.</div>`;
+    return;
+  }
+
+  const cats = Object.entries(res).sort((a,b)=>b[1].cant-a[1].cant).map(([cat,v])=>`
+    <div class="cat-card">
+      <div class="cat-name">${cat}</div>
+      <div class="cat-stats">
+        <div class="cat-cant">${v.cant}<span class="cat-unit"> env.</span></div>
+        <div class="cat-monto">${fmt(v.monto)}</div>
+      </div>
+    </div>`).join("");
+
+  el.innerHTML=`
+    <div class="periodo-tag">${periodoTxt}</div>
+    <div class="cat-grid">${cats}</div>
+    <div class="total-card">
+      <div class="total-row"><span class="total-label">Total envíos</span><span class="total-num">${totalEnv}</span></div>
+      <div class="divider"></div>
+      <div class="total-row"><span class="total-label">Monto total</span><span class="total-monto">${fmt(totalMonto)}</span></div>
+    </div>`;
+}
+
+function renderHistorial() {
+  const el = document.getElementById("content-historial");
+  const dias = getDiasMes();
+  if (dias.length===0) { el.innerHTML=`<div class="hist-wrap"><div class="empty">Sin datos para ${MESES[getMesIdx()]} ${getAnio()}.</div></div>`; return; }
+  const rows = dias.map(d=>{
+    const dt=new Date(d+"T00:00:00");
+    const dayData=data[d]||{};
+    let env=0, mon=0;
+    Object.entries(dayData).forEach(([cat,val])=>{
+      if(typeof val==="object"&&val.cant!==undefined){ env+=val.cant; mon+=val.monto; }
+      else { env+=val; mon+=val*getPrice(cat); }
+    });
+    return `<div class="hist-row">
+      <div class="hist-fecha">${dt.getDate()} ${MESES[dt.getMonth()]}</div>
+      <div class="hist-stats"><span class="hist-envios">${env} envíos</span><span class="hist-monto">${fmt(mon)}</span></div>
+      <button class="btn-del" onclick="delDay('${d}')">🗑️</button>
+    </div>`;
+  }).join("");
+  el.innerHTML=`<div class="hist-wrap">${rows}</div>`;
+}
+
+function renderConfig() {
+  const el = document.getElementById("content-config");
+  const rows = Object.keys(PRECIOS_DEFAULT).map(cat=>{
+    const norm = normCat(cat);
+    const precio = precios[norm] || precios[cat] || PRECIOS_DEFAULT[cat];
+    return `<div class="config-row">
+      <span class="config-cat">${cat}</span>
+      <input type="number" class="config-input" id="p_${cat.replace(/\s/g,'_').replace(/\//g,'_')}" value="${precio}">
+    </div>`;
+  }).join("");
+  el.innerHTML=`<div class="config-wrap">
+    <div class="config-title">⚙️ Precios por categoría</div>
+    <div class="config-sub">Los cambios aplican solo a los días nuevos. Los históricos conservan sus montos originales.</div>
+    ${rows}
+    <button class="btn-save-config" onclick="saveConfig()">💾 Guardar precios</button>
+    <div class="config-ok" id="config-ok">✓ Precios actualizados correctamente</div>
+  </div>`;
+}
+
+function saveConfig() {
+  Object.keys(PRECIOS_DEFAULT).forEach(cat=>{
+    const norm = normCat(cat);
+    const id = "p_"+cat.replace(/\s/g,'_').replace(/\//g,'_');
+    const el = document.getElementById(id);
+    if (el) { const v=parseInt(el.value); if(v>0) precios[norm]=v; }
+  });
+  savePrices();
+  const ok = document.getElementById("config-ok");
